@@ -4,270 +4,228 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PES</title>
+<meta name="description" content="PES – hromadné premenovanie súborov v prehliadači: diakritika, formát výkresu, veľkosť písmen, nahradenie textu, prefix, sufix a číslovanie.">
+<meta name="theme-color" content="#ECEEF1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1216" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='11' fill='%23F2611D'/%3E%3Cg fill='%2317110C'%3E%3Crect x='10' y='11' width='20' height='4' rx='2'/%3E%3Crect x='10' y='18' width='12' height='4' rx='2'/%3E%3Crect x='10' y='25' width='20' height='4' rx='2'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<style>
-:root{
-  --bg:#E9EDF1; --surface:#FFFFFF; --ink:#16263A; --muted:#5A6B7E;
-  --line:#C9D2DC; --mark:#F2C230; --mark-ink:#16263A; --ok:#1F7A55; --accent:#1D4E89;
-  box-sizing:border-box;
-  padding-top:env(safe-area-inset-top,0px);
-  padding-bottom:env(safe-area-inset-bottom,0px);
-}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --bg:#111A24; --surface:#18232F; --ink:#E4EAF0; --muted:#93A3B4;
-    --line:#2C3B4B; --mark:#E0B21E; --mark-ink:#111A24; --ok:#5FC197; --accent:#7FB0E8;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#111A24; --surface:#18232F; --ink:#E4EAF0; --muted:#93A3B4;
-  --line:#2C3B4B; --mark:#E0B21E; --mark-ink:#111A24; --ok:#5FC197; --accent:#7FB0E8;
-}
-*,*::before,*::after{box-sizing:inherit}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{
-  margin:0; background:var(--bg); color:var(--ink);
-  font:16px/1.5 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-}
-main{max-width:860px;margin:0 auto;padding:40px 20px 64px}
-h1{
-  font-family:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
-  font-weight:600; font-size:clamp(28px,5vw,40px); line-height:1.15; margin:0 0 8px;
-}
-h1 .demo{display:block;color:var(--muted);font-size:.55em;font-weight:600;margin-top:6px}
-h1 .demo mark{background:var(--mark);color:var(--mark-ink);padding:0 1px;border-radius:2px}
-.lead{color:var(--muted);margin:0 0 28px;max-width:60ch}
-
-.drop{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
-  border:2px dashed var(--line);background:var(--surface);border-radius:10px;
-  padding:36px 20px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;
-}
-.drop:hover,.drop.over{border-color:var(--accent)}
-.drop:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
-.drop strong{font-size:18px}
-.drop span{color:var(--muted);font-size:14px}
-input[type=file]{display:none}
-
-.opts{display:flex;flex-wrap:wrap;gap:8px 24px;margin:20px 0 8px;color:var(--ink);font-size:15px}
-.opts label{display:flex;align-items:center;gap:8px;cursor:pointer}
-.opts input{width:18px;height:18px;accent-color:var(--accent)}
-
-.summary{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin:28px 0 10px}
-.summary p{margin:0;color:var(--muted);font-size:15px}
-.summary b{color:var(--ink)}
-.linkbtn{background:none;border:0;color:var(--accent);font:inherit;font-size:15px;cursor:pointer;padding:4px 0;text-decoration:underline;text-underline-offset:3px}
-
-.list{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.row{display:grid;grid-template-columns:1fr auto;gap:4px 16px;padding:12px 16px;border-top:1px solid var(--line)}
-.row:first-child{border-top:0}
-.names{min-width:0}
-.old,.new{overflow-wrap:anywhere}
-.old{color:var(--muted);font-size:14px}
-.old mark{background:var(--mark);color:var(--mark-ink);padding:0 1px;border-radius:2px}
-.new{font-weight:500}
-.row.same .new{color:var(--muted);font-weight:400}
-.tag{align-self:center;font-size:13px;color:var(--ok);white-space:nowrap}
-.row.same .tag{color:var(--muted)}
-.rm{background:none;border:0;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;padding:0 4px;margin-left:8px}
-.rm:hover{color:var(--ink)}
-.rm:focus-visible{outline:2px solid var(--accent);border-radius:4px}
-
-.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}
-.btn{
-  font:inherit;font-weight:600;font-size:15px;border-radius:8px;padding:11px 18px;cursor:pointer;
-  border:1px solid var(--accent);
-}
-.btn.primary{background:var(--accent);color:var(--surface)}
-.btn.secondary{background:transparent;color:var(--accent)}
-.btn:disabled{opacity:.5;cursor:default}
-.btn:focus-visible{outline:3px solid var(--mark);outline-offset:2px}
-.status{margin-top:12px;font-size:14px;color:var(--muted);min-height:1.5em}
-
-details{margin-top:28px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
-summary{cursor:pointer;font-weight:500}
-details p{color:var(--muted);font-size:14px;margin:10px 0}
-textarea{
-  width:100%;min-height:140px;border:1px solid var(--line);border-radius:6px;padding:10px;
-  background:var(--bg);color:var(--ink);font:13px/1.45 Consolas,"SFMono-Regular",Menlo,monospace;resize:vertical;
-}
-[hidden]{display:none!important}
-@media (max-width:520px){ .row{grid-template-columns:1fr} .tag{justify-self:start} }
-@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
-</style>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<main>
-  <h1>Názvy súborov bez diakritiky
-    <span class="demo">Výkres_mostného_objektu.dwg → Vykres_mostneho_objektu.dwg</span>
-  </h1>
-  <p class="lead">Pridajte súbory, skontrolujte nové názvy a stiahnite ich premenované v ZIP-e. Súbory sa spracúvajú len vo vašom prehliadači, nikam sa neodosielajú.</p>
-
-  <label class="drop" id="drop" tabindex="0" role="button" aria-label="Vybrať súbory">
-    <strong>Pretiahnite súbory sem</strong>
-    <span>alebo kliknite a vyberte ich</span>
-    <input type="file" id="picker" multiple>
-  </label>
-
-  <div class="opts">
-    <label><input type="checkbox" id="optSpaces"> Medzery nahradiť podčiarkovníkom</label>
-    <label><input type="checkbox" id="optLower"> Malé písmená</label>
+<div class="overlay" aria-hidden="true">
+  <div class="overlay-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
+    Pustite súbory
   </div>
+</div>
 
-  <section id="result" hidden>
-    <div class="summary">
-      <p id="count"></p>
-      <button class="linkbtn" id="clear" type="button">Vymazať zoznam</button>
+<div class="shell">
+  <header class="top">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 40 40" aria-hidden="true">
+        <rect class="bg" width="40" height="40" rx="11"/>
+        <g class="fg">
+          <rect x="10" y="11" width="20" height="4" rx="2"/>
+          <rect x="10" y="18" width="11" height="4" rx="2"/>
+          <rect x="10" y="25" width="20" height="4" rx="2"/>
+          <rect x="24.5" y="15.5" width="2.5" height="9" rx="1.25"/>
+        </g>
+      </svg>
+      <div>
+        <h1>PES</h1>
+        <p>Premenovanie a editácia súborov</p>
+      </div>
     </div>
-    <div class="list" id="list"></div>
-    <div class="actions">
-      <button class="btn primary" id="zipBtn" type="button">Stiahnuť ZIP</button>
+    <p class="local">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+      Súbory zostávajú vo vašom počítači
+    </p>
+  </header>
+
+  <main class="app">
+    <div class="drop-area">
+      <label class="drop" id="drop" for="picker" tabindex="0" role="button" aria-describedby="dropHint">
+        <span class="drop-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 18v-7"/><path d="m9 14 3-3 3 3"/></svg>
+        </span>
+        <span class="drop-text">
+          <strong id="dropTitle">Pretiahnite súbory sem</strong>
+          <span id="dropHint">alebo kliknite a vyberte ich z počítača</span>
+        </span>
+      </label>
+      <input type="file" id="picker" multiple hidden>
+      <p class="note" id="dropNote" role="status"></p>
     </div>
-    <div class="status" id="status" role="status"></div>
 
-    <details>
-      <summary>Premenovať priamo v priečinku (PowerShell)</summary>
-      <p>Ak nechcete súbory sťahovať znova, otvorte PowerShell v priečinku so súbormi a vložte tento skript.</p>
-      <textarea id="ps" readonly></textarea>
-      <div class="actions"><button class="btn secondary" id="copyPs" type="button">Kopírovať skript</button></div>
-    </details>
-  </section>
-</main>
+    <aside class="panel card" aria-label="Nastavenia premenovania">
+      <section class="sec">
+        <h2>Čistenie názvu</h2>
+        <label class="sw">
+          <span class="sw-text"><span class="sw-title">Odstrániť diakritiku</span><span class="sw-hint">Výkres → Vykres</span></span>
+          <input type="checkbox" role="switch" id="optDia">
+        </label>
+        <label class="sw">
+          <span class="sw-text">
+            <span class="sw-title">Odstrániť formát výkresu</span>
+            <span class="sw-hint">Situácia-420x1050_10xA4 → Situácia</span>
+            <span class="fmts" aria-label="Formáty"><code>-297x…</code><code>-420x…</code><code>-594x…</code><code>-891x…</code></span>
+          </span>
+          <input type="checkbox" role="switch" id="optFmt">
+        </label>
+        <label class="sw">
+          <span class="sw-text"><span class="sw-title">Upratať medzery</span><span class="sw-hint">Zlúči dvojité medzery a oreže okraje</span></span>
+          <input type="checkbox" role="switch" id="optSpaces">
+        </label>
+      </section>
 
-<script>
-(function(){
-  const SPECIAL = {'ł':'l','Ł':'L','đ':'d','Đ':'D','ø':'o','Ø':'O','ß':'ss','æ':'ae','Æ':'AE','œ':'oe','Œ':'OE','ı':'i'};
-  const strip = ch => (SPECIAL[ch] ?? ch.normalize('NFD').replace(/\p{M}/gu,''));
-  const hasDia = ch => strip(ch) !== ch;
+      <section class="sec">
+        <h2 id="caseLabel">Veľkosť písmen</h2>
+        <div class="seg" role="radiogroup" aria-labelledby="caseLabel">
+          <label title="Bez zmeny"><input type="radio" name="case" id="caseKeep" value="keep" aria-label="Bez zmeny"><span>—</span></label>
+          <label title="malé písmená"><input type="radio" name="case" id="caseLower" value="lower" aria-label="malé písmená"><span>aa</span></label>
+          <label title="Prvé písmeno veľké"><input type="radio" name="case" id="caseSentence" value="sentence" aria-label="Prvé písmeno veľké, ostatné malé"><span>Aa</span></label>
+          <label title="Každé Slovo Veľkým"><input type="radio" name="case" id="caseTitle" value="title" aria-label="Každé slovo s veľkým začiatočným písmenom"><span>Aa Bb</span></label>
+          <label title="VEĽKÉ PÍSMENÁ"><input type="radio" name="case" id="caseUpper" value="upper" aria-label="veľké písmená"><span>AA</span></label>
+        </div>
+        <p class="caption" id="caseCaption"></p>
+        <label class="check"><input type="checkbox" id="optExt"> Príponu súboru malými <code>.PDF → .pdf</code></label>
+      </section>
 
-  function convert(name){
-    let out = Array.from(name).map(strip).join('');
-    if (optSpaces.checked) out = out.replace(/\s+/g,'_');
-    if (optLower.checked) out = out.toLowerCase();
-    return out;
-  }
+      <section class="sec">
+        <h2>Nahradiť text</h2>
+        <div class="rules" id="rules"></div>
+        <div class="btnrow">
+          <button class="mini" type="button" id="addRule">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Pridať pravidlo
+          </button>
+        </div>
+        <p class="hint">Hľadá sa v názve bez prípony. <b>Aa</b> rozlíši veľké a malé písmená, <b>.*</b> zapne regulárne výrazy.</p>
+        <details class="help">
+          <summary>Pomôcka k regulárnym výrazom</summary>
+          <div class="help-body">
+            <div class="tbl">
+              <table>
+                <tr><td><code>^</code> <code>$</code></td><td>začiatok a koniec názvu</td></tr>
+                <tr><td><code>\d</code> <code>\s</code> <code>.</code></td><td>číslica, medzera, ľubovoľný znak</td></tr>
+                <tr><td><code>+</code> <code>*</code> <code>?</code></td><td>raz a viac, ľubovoľne veľa, nanajvýš raz</td></tr>
+                <tr><td><code>( )</code> <code>$1</code></td><td>skupina a jej obsah v nahradení</td></tr>
+              </table>
+            </div>
+            <p>Príklady</p>
+            <div class="tbl">
+              <table>
+                <tr><td><code>\s*\(\d+\)$</code></td><td>→ prázdne: odstráni „(1)“ na konci</td></tr>
+                <tr><td><code>^\d+[ _-]*</code></td><td>→ prázdne: odstráni číslo na začiatku</td></tr>
+                <tr><td><code>SO\s*(\d+)</code></td><td>→ <code>SO$1</code>: SO 201 → SO201</td></tr>
+                <tr><td><code>^(.+)_(\d+)$</code></td><td>→ <code>$2_$1</code>: Rez_03 → 03_Rez</td></tr>
+              </table>
+            </div>
+          </div>
+        </details>
+      </section>
 
-  let files = [];
-  const $ = id => document.getElementById(id);
-  const drop=$('drop'), picker=$('picker'), list=$('list'), result=$('result'),
-        count=$('count'), status=$('status'), zipBtn=$('zipBtn'), ps=$('ps'),
-        optSpaces=$('optSpaces'), optLower=$('optLower');
+      <section class="sec">
+        <h2>Prefix a sufix</h2>
+        <div class="two">
+          <label class="fld"><span>Prefix</span><input class="in" type="text" id="prefix" placeholder="napr. SO201_" spellcheck="false" autocomplete="off"></label>
+          <label class="fld"><span>Sufix</span><input class="in" type="text" id="suffix" placeholder="napr. _rev1" spellcheck="false" autocomplete="off"></label>
+        </div>
+        <p class="hint">Sufix sa vloží pred príponu súboru.</p>
+      </section>
 
-  function uniqueNames(){
-    const used = new Map();
-    return files.map(f=>{
-      let n = convert(f.name);
-      const key = n.toLowerCase();
-      if (used.has(key)){
-        const k = used.get(key)+1; used.set(key,k);
-        const dot = n.lastIndexOf('.');
-        n = dot>0 ? n.slice(0,dot)+'_'+k+n.slice(dot) : n+'_'+k;
-      } else used.set(key,1);
-      return n;
-    });
-  }
+      <section class="sec">
+        <h2>Číslovanie</h2>
+        <div class="three">
+          <label class="fld"><span>Začať od</span><input class="in" type="number" id="numStart" step="1" inputmode="numeric"></label>
+          <label class="fld"><span>Krok</span><input class="in" type="number" id="numStep" step="1" inputmode="numeric"></label>
+          <label class="fld"><span>Počet číslic</span><input class="in" type="number" id="numPad" min="1" max="8" step="1" inputmode="numeric"></label>
+        </div>
+        <p class="hint">Značka <span class="tok">[C]</span> v prefixe, sufixe alebo nahradení sa zmení na poradové číslo: <span id="numPreview"></span></p>
+        <div class="btnrow">
+          <button class="mini" type="button" id="numFront">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Číslo na začiatok
+          </button>
+          <button class="mini" type="button" id="numBack">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Číslo na koniec
+          </button>
+        </div>
+      </section>
 
-  function highlight(name){
-    const frag = document.createDocumentFragment();
-    let buf='';
-    for (const ch of Array.from(name)){
-      if (hasDia(ch)){
-        if (buf){ frag.append(buf); buf=''; }
-        const m=document.createElement('mark'); m.textContent=ch; frag.append(m);
-      } else buf+=ch;
-    }
-    if (buf) frag.append(buf);
-    return frag;
-  }
+      <div class="panel-foot">
+        <button class="link" type="button" id="reset">Obnoviť predvolené nastavenia</button>
+      </div>
+    </aside>
 
-  function render(){
-    result.hidden = files.length===0;
-    list.textContent='';
-    const names = uniqueNames();
-    let changed=0;
-    files.forEach((f,i)=>{
-      const same = names[i]===f.name;
-      if(!same) changed++;
-      const row=document.createElement('div'); row.className='row'+(same?' same':'');
-      const box=document.createElement('div'); box.className='names';
-      const o=document.createElement('div'); o.className='old'; o.append(highlight(f.name));
-      const n=document.createElement('div'); n.className='new'; n.textContent=names[i];
-      box.append(o,n);
-      const right=document.createElement('div'); right.className='tag';
-      right.textContent = same ? 'bez zmeny' : 'premenované';
-      const rm=document.createElement('button'); rm.className='rm'; rm.type='button';
-      rm.setAttribute('aria-label','Odstrániť '+f.name); rm.textContent='×';
-      rm.onclick=()=>{ files.splice(i,1); render(); };
-      right.append(rm);
-      row.append(box,right); list.append(row);
-    });
-    const s = files.length===1?'súbor':(files.length<5?'súbory':'súborov');
-    count.innerHTML = `<b>${files.length}</b> ${s}, z toho <b>${changed}</b> s novým názvom`;
-    status.textContent='';
-    // PowerShell script
-    const q = s => "'"+s.replace(/'/g,"''")+"'";
-    const lines = files.map((f,i)=> names[i]!==f.name ? `Rename-Item -LiteralPath ${q(f.name)} -NewName ${q(names[i])}` : null).filter(Boolean);
-    ps.value = lines.length ? lines.join('\n') : '# Žiadny súbor nepotrebuje premenovať.';
-  }
+    <section class="files" aria-labelledby="filesTitle">
+      <div class="card">
+        <div class="files-head">
+          <div>
+            <h2 id="filesTitle">Náhľad názvov</h2>
+            <p class="count" id="count"></p>
+          </div>
+          <div class="view">
+            <label class="sort" for="sort">Poradie
+              <select class="select" id="sort">
+                <option value="added">ako boli pridané</option>
+                <option value="name">podľa názvu A → Z</option>
+                <option value="name-desc">podľa názvu Z → A</option>
+                <option value="date">podľa dátumu zmeny</option>
+              </select>
+            </label>
+            <label class="check"><input type="checkbox" id="onlyChanged"> Len zmenené</label>
+            <button class="link" type="button" id="clear">Vymazať zoznam</button>
+          </div>
+        </div>
+        <ol class="list" id="list" aria-label="Pôvodné a nové názvy"></ol>
+        <div class="legend" aria-hidden="true">
+          <span><i class="l-chg"></i>upravené písmeno</span>
+          <span><i class="l-ins"></i>pridané</span>
+          <span><i class="l-del"></i>odstránené</span>
+        </div>
+        <div class="actionbar" id="actions">
+          <button class="btn btn-primary" type="button" id="zipBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
+            <span>Stiahnuť ZIP</span>
+          </button>
+          <button class="btn btn-ghost" type="button" id="copyList">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>
+            <span>Kopírovať zoznam</span>
+          </button>
+          <p class="status" id="status" role="status"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
 
-  function add(fileList){
-    const seen = new Set(files.map(f=>f.name+'|'+f.size));
-    for (const f of fileList){ if(!seen.has(f.name+'|'+f.size)) files.push(f); }
-    render();
-  }
+<template id="ruleTpl">
+  <div class="rule">
+    <div class="rule-fields">
+      <div class="find">
+        <input class="in r-find" type="text" placeholder="Hľadať" aria-label="Hľadať" spellcheck="false" autocomplete="off">
+        <div class="tools">
+          <button type="button" class="tog r-cs" aria-pressed="false" title="Rozlišovať veľké a malé písmená" aria-label="Rozlišovať veľké a malé písmená">Aa</button>
+          <button type="button" class="tog r-rx" aria-pressed="false" title="Regulárny výraz" aria-label="Regulárny výraz">.*</button>
+        </div>
+      </div>
+      <div class="repl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4v7a3 3 0 0 0 3 3h11"/><path d="m15 10 4 4-4 4"/></svg>
+        <input class="in r-repl" type="text" placeholder="Nahradiť za (prázdne = odstrániť)" aria-label="Nahradiť za" spellcheck="false" autocomplete="off">
+      </div>
+    </div>
+    <button type="button" class="iconbtn r-del" aria-label="Odstrániť pravidlo" title="Odstrániť pravidlo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+    <p class="rule-err r-err" hidden></p>
+  </div>
+</template>
 
-  picker.addEventListener('change',e=>{ add(e.target.files); picker.value=''; });
-  drop.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); picker.click(); }});
-  ['dragenter','dragover'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add('over');}));
-  ['dragleave','drop'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove('over');}));
-  drop.addEventListener('drop',e=>add(e.dataTransfer.files));
-  window.addEventListener('dragover',e=>e.preventDefault());
-  window.addEventListener('drop',e=>e.preventDefault());
-  optSpaces.addEventListener('change',render);
-  optLower.addEventListener('change',render);
-  $('clear').onclick=()=>{ files=[]; render(); };
-
-  // Downloads capability
-  let downloads=null;
-  zipBtn.disabled=true;
-  if (window.claude && window.claude.use){
-    window.claude.use('downloads').then(d=>{
-      downloads=d;
-      if(d){ zipBtn.disabled=false; }
-      else { zipBtn.hidden=true; status.textContent='Sťahovanie tu nie je dostupné. Použite PowerShell skript nižšie.'; }
-    }).catch(()=>{ zipBtn.hidden=true; });
-  } else { zipBtn.hidden=true; }
-
-  zipBtn.onclick=async()=>{
-    if(!downloads||!files.length) return;
-    zipBtn.disabled=true; status.textContent='Balím súbory…';
-    try{
-      const zip=new JSZip(); const names=uniqueNames();
-      files.forEach((f,i)=>zip.file(names[i],f));
-      const blob=await zip.generateAsync({type:'blob'});
-      status.textContent='Potvrďte uloženie súboru.';
-      await downloads.save({filename:'subory_bez_diakritiky.zip',data:blob});
-      status.textContent='ZIP je uložený.';
-    }catch(err){
-      const c=err&&err.code;
-      status.textContent = c==='declined' ? 'Uloženie ste zrušili.'
-        : c==='rate_limited' ? 'Už je otvorené jedno potvrdenie. Skúste o chvíľu znova.'
-        : c==='too_large' ? 'ZIP je príliš veľký. Rozdeľte súbory do menších dávok.'
-        : 'ZIP sa nepodarilo uložiť. Použite PowerShell skript nižšie.';
-    }finally{ zipBtn.disabled=false; }
-  };
-
-  $('copyPs').onclick=async()=>{
-    try{ await navigator.clipboard.writeText(ps.value); $('copyPs').textContent='Skopírované'; }
-    catch{ ps.focus(); ps.select(); $('copyPs').textContent='Označené, stlačte Ctrl+C'; }
-    setTimeout(()=>$('copyPs').textContent='Kopírovať skript',2000);
-  };
-
-  render();
-})();
-</script>
+<script src="js/app.js"></script>
 </body>
 </html>
